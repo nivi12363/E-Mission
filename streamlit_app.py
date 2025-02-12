@@ -22,6 +22,7 @@ def create_users_table():
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL
         )
     ''')
@@ -33,9 +34,9 @@ def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 # Register user
-def register_user(username: str, password: str):
+def register_user(username: str, email: str, password: str):
     conn = get_db_connection()
-    conn.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, hash_password(password)))
+    conn.execute('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', (username, email, hash_password(password)))
     conn.commit()
     conn.close()
 
@@ -52,7 +53,7 @@ def is_user_logged_in():
 
 # Show login form
 def show_users_login():
-    st.subheader("Login Section")
+    st.subheader("Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type='password')
     if st.button("Login"):
@@ -62,19 +63,25 @@ def show_users_login():
             st.success(f"Logged In as {username}")
         else:
             st.warning("Incorrect Username/Password")
+    st.info("If you are new, please Sign Up below.")
+    if st.button("Sign Up"):
+        st.session_state.show_signup = True
 
 # Show registration form
 def show_users_registration():
     st.subheader("Create New Account")
     new_user = st.text_input("Username")
+    new_email = st.text_input("Email")
     new_password = st.text_input("Password", type='password')
     if st.button("Sign Up"):
         try:
-            register_user(new_user, new_password)
+            register_user(new_user, new_email, new_password)
             st.success("You have successfully created an account")
             st.info("Go to the Login Menu to login")
         except sqlite3.IntegrityError:
-            st.warning("Username already exists")
+            st.warning("Username or Email already exists")
+    if st.button("Back to Login"):
+        st.session_state.show_signup = False
 
 # Show logout button
 def show_logout_button(sidebar=False):
@@ -102,6 +109,8 @@ if "quiz_completed" not in st.session_state:
     st.session_state.quiz_completed = False
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
+if "show_signup" not in st.session_state:
+    st.session_state.show_signup = False
 
 # Create users table if it doesn't exist
 create_users_table()
@@ -184,11 +193,10 @@ st.title("E-mission")
 
 # Navigation menu
 if not is_user_logged_in():
-    menu = st.sidebar.radio("Menu", ["Login", "Sign Up"])
-    if menu == "Login":
-        show_users_login()
-    elif menu == "Sign Up":
+    if st.session_state.show_signup:
         show_users_registration()
+    else:
+        show_users_login()
 else:
     if st.session_state.quiz_completed:
         menu = st.sidebar.radio("Navigation", ["Home", "Goals", "Offset", "Levels", "Streaks"])
