@@ -1,0 +1,5 @@
+st-gsheets-connection
+streamlit
+matplotlib
+seaborn
+pandas
