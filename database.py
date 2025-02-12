@@ -15,7 +15,7 @@ def gsheet_connect():
     ## Connect only if not already connected
     if not csv_mode:
         if "conn" not in st.session_state:
-            conn = st.connection("gsheets", type=GSheetsConnection)
+            conn = st.connection("gsheets", type=GSheetsConnection,spreadsheet = "1dRsURQhNhHzSDVS-280ef8YJDwQXA8-hR79GZfNGgwY")
             st.session_state.conn = conn
 
 def read_sheet_df(sheet_name):
