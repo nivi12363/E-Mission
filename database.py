@@ -14,8 +14,8 @@ sheetname_userdata = "user_data"
 # Low-level functions
 
 def gsheet_connect():
-    """Connect to a public Google Sheet (read-only)."""
-    gc = gspread.Client()  # No authentication needed
+    """Connect to a public Google Sheet without authentication."""
+    gc = gspread.oauth()  # No authentication required
     sh = gc.open_by_url(SHEET_URL)
     return sh
 
