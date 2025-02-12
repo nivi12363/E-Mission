@@ -15,8 +15,8 @@ sheetname_userdata = "user_data"
 
 def gsheet_connect():
     """Connect to a public Google Sheet without authentication."""
-    gc = gspread.service_account()  # Skip if not using authentication
-    sh = gc.open_by_url(SHEET_URL)
+    gc = gspread.public()  # Use public access instead of service_account()
+    sh = gc.open_by_url("https://docs.google.com/spreadsheets/d/1dRsURQhNhHzSDVS-280ef8YJDwQXA8-hR79GZfNGgwY")
     return sh
 
 def read_sheet_df(sheet_name):
