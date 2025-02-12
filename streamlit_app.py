@@ -63,6 +63,19 @@ def show_users_login():
         else:
             st.warning("Incorrect Username/Password")
 
+# Show registration form
+def show_users_registration():
+    st.subheader("Create New Account")
+    new_user = st.text_input("Username")
+    new_password = st.text_input("Password", type='password')
+    if st.button("Sign Up"):
+        try:
+            register_user(new_user, new_password)
+            st.success("You have successfully created an account")
+            st.info("Go to the Login Menu to login")
+        except sqlite3.IntegrityError:
+            st.warning("Username already exists")
+
 # Show logout button
 def show_logout_button(sidebar=False):
     if sidebar:
@@ -171,12 +184,16 @@ st.title("E-mission")
 
 # Navigation menu
 if not is_user_logged_in():
-    show_users_login()
-    menu = None
-elif st.session_state.quiz_completed:
-    menu = st.sidebar.radio("Navigation", ["Home", "Goals", "Offset", "Levels", "Streaks"])
+    menu = st.sidebar.radio("Menu", ["Login", "Sign Up"])
+    if menu == "Login":
+        show_users_login()
+    elif menu == "Sign Up":
+        show_users_registration()
 else:
-    menu = "Quiz"
+    if st.session_state.quiz_completed:
+        menu = st.sidebar.radio("Navigation", ["Home", "Goals", "Offset", "Levels", "Streaks"])
+    else:
+        menu = "Quiz"
 
 # Sidebar for displaying points and level
 if is_user_logged_in() and "eco_points" in st.session_state and st.session_state.quiz_completed:
