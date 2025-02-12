@@ -63,7 +63,9 @@ def show_users_login():
             st.success(f"Logged In as {username}")
         else:
             st.warning("Incorrect Username/Password")
-    st.markdown("If you are new, please [Sign Up](#signup).")
+    st.markdown("If you are new, please [Sign Up](#) here.", unsafe_allow_html=True)
+    if st.button("Sign Up", key="signup_button"):
+        st.session_state.show_signup = True
 
 # Show registration form
 def show_users_registration():
@@ -80,7 +82,7 @@ def show_users_registration():
             st.warning("Username or Email already exists")
     if st.button("Back to Login"):
         st.session_state.show_signup = False
-
+        
 # Show logout button
 def show_logout_button(sidebar=False):
     if sidebar:
