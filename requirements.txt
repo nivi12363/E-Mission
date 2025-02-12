@@ -3,3 +3,5 @@ streamlit
 matplotlib
 seaborn
 pandas
+gspread
+gspread_dataframe
