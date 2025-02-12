@@ -401,7 +401,7 @@ if 'streak_counter' not in st.session_state:
 if 'eco_points' not in st.session_state:
     st.session_state.eco_points = 0
 
-if user_lib.is_user_logged_in() and menu == "Streaks":
+if is_user_logged_in() and menu == "Streaks":
     st.header("Track Your Daily Eco-Friendly Streaks")
 
     # Define streak activities and their descriptions
