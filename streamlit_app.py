@@ -457,7 +457,7 @@ def update_carbon_footprint_history(new_value):
 
 
 ######################
-if user_lib.is_user_logged_in() and menu == "Home":
+if is_user_logged_in() and menu == "Home":
     st.header("Welcome to Your Eco-Friendly Journey!")
     st.write("Use the navigation menu to explore suggestions, track your goals, or offset your carbon footprint.")
     if "total_emissions" in st.session_state and "category_emissions" in st.session_state:
@@ -551,7 +551,7 @@ def mark_goal_as_completed(goal):
     if goal in st.session_state.goals:
         st.session_state.goals.remove(goal)
 
-if user_lib.is_user_logged_in() and menu == "Goals":
+if is_user_logged_in() and menu == "Goals":
     st.header("Set and Track Your Goals")
 
     # Flatten goals data into a list of actions with categories, carbon reduction, and points
@@ -612,7 +612,7 @@ if user_lib.is_user_logged_in() and menu == "Goals":
     st.session_state.eco_points = total_points
 
 # --- Offset Section ---
-if user_lib.is_user_logged_in() and menu == "Offset":
+if is_user_logged_in() and menu == "Offset":
     st.header("Offset Your Carbon Footprint")
     
     offset_links = {
