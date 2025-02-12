@@ -63,9 +63,7 @@ def show_users_login():
             st.success(f"Logged In as {username}")
         else:
             st.warning("Incorrect Username/Password")
-    st.markdown("If you are new, please [Sign Up](#) here.", unsafe_allow_html=True)
-    if st.button("Sign Up", key="signup_button"):
-        st.session_state.show_signup = True
+    st.markdown("If you are new, please [Sign Up](#signup) here.", unsafe_allow_html=True)
 
 # Show registration form
 def show_users_registration():
@@ -82,7 +80,7 @@ def show_users_registration():
             st.warning("Username or Email already exists")
     if st.button("Back to Login"):
         st.session_state.show_signup = False
-        
+
 # Show logout button
 def show_logout_button(sidebar=False):
     if sidebar:
@@ -213,6 +211,7 @@ if is_user_logged_in() and "eco_points" in st.session_state and st.session_state
         st.sidebar.write(f"Total Eco Points: {sum(goal['points'] for goal in st.session_state.completed_goals)}")
         st.sidebar.write(f"**Total Carbon Footprint:** {st.session_state.total_emissions:.2f} tons of CO₂e")
         show_logout_button(sidebar=True)
+        
 # --- Quiz Section ---
 if is_user_logged_in() and not st.session_state.quiz_completed:
     st.header("Calculate Your Carbon Footprint")
