@@ -2,17 +2,96 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import math
-import users as user_lib
+import sqlite3
+from sqlite3 import Connection
+import hashlib
 from datetime import date
 
-def update_carbon_footprint_history(new_value):
-    st.session_state.carbon_footprint_history.append(new_value)
+# Constants
+DATABASE_NAME = 'users.db'
 
-# --- Initialization of session state variables ---
-if 'carbon_footprint_history' not in st.session_state:
+# Database connection
+def get_db_connection() -> Connection:
+    conn = sqlite3.connect(DATABASE_NAME)
+    return conn
+
+# Create users table
+def create_users_table():
+    conn = get_db_connection()
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Hash password
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+# Register user
+def register_user(username: str, password: str):
+    conn = get_db_connection()
+    conn.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, hash_password(password)))
+    conn.commit()
+    conn.close()
+
+# Authenticate user
+def authenticate_user(username: str, password: str) -> bool:
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM users WHERE username = ? AND password = ?', (username, hash_password(password))).fetchone()
+    conn.close()
+    return user is not None
+
+# Check if user is logged in
+def is_user_logged_in():
+    return "logged_in" in st.session_state and st.session_state.logged_in
+
+# Show login form
+def show_users_login():
+    st.subheader("Login Section")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type='password')
+    if st.button("Login"):
+        if authenticate_user(username, password):
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.success(f"Logged In as {username}")
+        else:
+            st.warning("Incorrect Username/Password")
+
+# Show logout button
+def show_logout_button(sidebar=False):
+    if sidebar:
+        if st.sidebar.button("Logout"):
+            st.session_state.logged_in = False
+            st.sidebar.success("Logged out successfully!")
+    else:
+        if st.button("Logout"):
+            st.session_state.logged_in = False
+            st.success("Logged out successfully!")
+
+# Get logged in user's name
+def get_logged_in_user_name():
+    return st.session_state.username if "username" in st.session_state else "User"
+
+# Initialize session state for goals and points
+if "carbon_footprint_history" not in st.session_state:
     st.session_state.carbon_footprint_history = []
+if "goals" not in st.session_state:
+    st.session_state.goals = []
+if "eco_points" not in st.session_state:
+    st.session_state.eco_points = 0
+if "quiz_completed" not in st.session_state:
+    st.session_state.quiz_completed = False
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-
+# Create users table if it doesn't exist
+create_users_table()
 
 # --- Data ---
 # Define emission factors (replace with your actual values)
@@ -83,38 +162,32 @@ def get_progress_level(points):
         if level["points"][0] <= points <= level["points"][1]:
             return level
     return None
-    
+
+def update_carbon_footprint_history(new_value):
+    st.session_state.carbon_footprint_history.append(new_value)
+
 # --- Streamlit App ---
 st.title("E-mission")
 
-# Initialize session state for goals and points
-if "goals" not in st.session_state:
-    st.session_state.goals = []
-if "eco_points" not in st.session_state:
-    st.session_state.eco_points = 0
-if "quiz_completed" not in st.session_state:
-    st.session_state.quiz_completed = False
-
 # Navigation menu
-if not user_lib.is_user_logged_in():
-    user_lib.show_users_login()
+if not is_user_logged_in():
+    show_users_login()
     menu = None
 elif st.session_state.quiz_completed:
-    menu = st.sidebar.radio("Navigation", ["Home", "Goals", "Offset", "Levels","Streaks"])
+    menu = st.sidebar.radio("Navigation", ["Home", "Goals", "Offset", "Levels", "Streaks"])
 else:
     menu = "Quiz"
-    
+
 # Sidebar for displaying points and level
-if user_lib.is_user_logged_in() and "eco_points" in st.session_state and st.session_state.quiz_completed:
+if is_user_logged_in() and "eco_points" in st.session_state and st.session_state.quiz_completed:
     progress_level = get_progress_level(st.session_state.eco_points)
     if progress_level:
-        # st.sidebar.header("Your Progress")
-        st.sidebar.header(user_lib.get_logged_in_user_name() + ", Your Progress")
+        st.sidebar.header(get_logged_in_user_name() + ", Your Progress")
         st.sidebar.write(f"**{progress_level['title']}**")
         st.sidebar.write(progress_level["description"])
         st.sidebar.write(f"Total Eco Points: {sum(goal['points'] for goal in st.session_state.completed_goals)}")
         st.sidebar.write(f"**Total Carbon Footprint:** {st.session_state.total_emissions:.2f} tons of CO₂e")
-        user_lib.show_logout_button(sidebar=True)
+        show_logout_button(sidebar=True)
 
 # --- Quiz Section ---
 if user_lib.is_user_logged_in() and not st.session_state.quiz_completed:
