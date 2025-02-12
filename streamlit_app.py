@@ -190,7 +190,7 @@ if is_user_logged_in() and "eco_points" in st.session_state and st.session_state
         show_logout_button(sidebar=True)
 
 # --- Quiz Section ---
-if user_lib.is_user_logged_in() and not st.session_state.quiz_completed:
+if is_user_logged_in() and not st.session_state.quiz_completed:
     st.header("Calculate Your Carbon Footprint")
 
     # --- DIET ---
