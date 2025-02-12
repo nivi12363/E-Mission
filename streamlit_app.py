@@ -650,7 +650,7 @@ if is_user_logged_in() and menu == "Offset":
         st.write(f"[{name}]({info['url']})")
         st.write(info['description'])
 
-if user_lib.is_user_logged_in() and menu == "Levels":
+if is_user_logged_in() and menu == "Levels":
     st.header("Available Levels")
 
 
