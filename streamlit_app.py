@@ -69,7 +69,6 @@ def show_users_login():
                 st.error("Incorrect Username/Password")
     
     st.markdown("---")
-    st.markdown("New to E-mission? [Sign Up](#signup)", unsafe_allow_html=True)
     with col2:
         if st.button("Sign Up", use_container_width=True):
             st.session_state.show_signup = True
