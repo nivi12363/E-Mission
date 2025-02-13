@@ -23,7 +23,8 @@ def create_users_table():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
             email TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL
+            password TEXT NOT NULL,
+            quiz_completed BOOLEAN DEFAULT 0
         )
     ''')
     conn.commit()
@@ -43,9 +44,13 @@ def register_user(username: str, email: str, password: str):
 # Authenticate user
 def authenticate_user(username: str, password: str) -> bool:
     conn = get_db_connection()
-    user = conn.execute('SELECT * FROM users WHERE username = ? AND password = ?', (username, hash_password(password))).fetchone()
+    user = conn.execute('SELECT quiz_completed FROM users WHERE username = ? AND password = ?', 
+                       (username, hash_password(password))).fetchone()
     conn.close()
-    return user is not None
+    if user:
+        st.session_state.quiz_completed = bool(user[0])
+        return True
+    return False
 
 # Check if user is logged in
 def is_user_logged_in():
@@ -423,7 +428,8 @@ if is_user_logged_in() and not st.session_state.quiz_completed:
         st.subheader(f"Daily Goal for {max_category}")
         st.write(daily_goals[max_category])
 
-        # Mark quiz as completed
+        # Update quiz completion in database
+        update_quiz_completion(st.session_state.username)
         st.session_state.quiz_completed = True
 
     # Add "Done" button to go to the home page
@@ -719,3 +725,10 @@ if is_user_logged_in() and menu == "Levels":
                 st.markdown("<p style='color:green;'>THIS IS YOU</p>", unsafe_allow_html=True)
         if st.button(f"Learn more about {level['title']}", key=level["title"]):
             st.write(level["description"])
+
+# Add function to update quiz completion status
+def update_quiz_completion(username: str):
+    conn = get_db_connection()
+    conn.execute('UPDATE users SET quiz_completed = 1 WHERE username = ?', (username,))
+    conn.commit()
+    conn.close()
