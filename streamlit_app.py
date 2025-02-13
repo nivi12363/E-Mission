@@ -2,148 +2,17 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import math
-import sqlite3
-from sqlite3 import Connection
-import hashlib
+import users as user_lib
 from datetime import date
 
-# Constants
-DATABASE_NAME = 'users.db'
+def update_carbon_footprint_history(new_value):
+    st.session_state.carbon_footprint_history.append(new_value)
 
-# Database connection
-def get_db_connection() -> Connection:
-    conn = sqlite3.connect(DATABASE_NAME)
-    return conn
-
-# Create users table
-def create_users_table():
-    conn = get_db_connection()
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL UNIQUE,
-            email TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL,
-            quiz_completed BOOLEAN DEFAULT 0
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-# Hash password
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
-
-# Register user
-def register_user(username: str, email: str, password: str):
-    conn = get_db_connection()
-    conn.execute('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', (username, email, hash_password(password)))
-    conn.commit()
-    conn.close()
-
-# Authenticate user
-def authenticate_user(username: str, password: str) -> bool:
-    conn = get_db_connection()
-    user = conn.execute('SELECT quiz_completed FROM users WHERE username = ? AND password = ?', 
-                       (username, hash_password(password))).fetchone()
-    conn.close()
-    if user:
-        st.session_state.quiz_completed = bool(user[0])
-        return True
-    return False
-
-# Check if user is logged in
-def is_user_logged_in():
-    return "logged_in" in st.session_state and st.session_state.logged_in
-
-# Show login form
-def show_users_login():
-    st.subheader("Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type='password')
-    
-    col1, col2 = st.columns([1,1])
-    with col1:
-        if st.button("Login", use_container_width=True):
-            if authenticate_user(username, password):
-                st.session_state.logged_in = True
-                st.session_state.username = username
-                st.success(f"Logged In as {username}")
-                st.rerun()
-            else:
-                st.error("Incorrect Username/Password")
-    
-    with col2:
-        if st.button("Sign Up", use_container_width=True):
-            st.session_state.show_signup = True
-            st.rerun()
-
-# Show registration form
-def show_users_registration():
-    st.subheader("Create New Account")
-    with st.form("signup_form"):
-        new_user = st.text_input("Username")
-        new_email = st.text_input("Email")
-        new_password = st.text_input("Password", type='password')
-        confirm_password = st.text_input("Confirm Password", type='password')
-        
-        submitted = st.form_submit_button("Sign Up")
-        
-        if submitted:
-            if not new_user or not new_email or not new_password:
-                st.error("Please fill in all fields")
-                return
-            
-            if new_password != confirm_password:
-                st.error("Passwords do not match")
-                return
-            
-            try:
-                register_user(new_user, new_email, new_password)
-                st.success("Account created successfully!")
-                st.info("Please login with your credentials")
-                st.session_state.show_signup = False
-                st.rerun()
-            except sqlite3.IntegrityError:
-                st.error("Username or Email already exists")
-    
-    st.markdown("---")
-    st.markdown("Already have an account?")
-    if st.button("Back to Login", use_container_width=True):
-        st.session_state.show_signup = False
-        st.rerun()
-
-# Show logout button
-def show_logout_button(sidebar=False):
-    if sidebar:
-        if st.sidebar.button("Logout"):
-            st.session_state.logged_in = False
-            st.sidebar.success("Logged out successfully!")
-    else:
-        if st.button("Logout"):
-            st.session_state.logged_in = False
-            st.success("Logged out successfully!")
-
-# Get logged in user's name
-def get_logged_in_user_name():
-    return st.session_state.username if "username" in st.session_state else "User"
-
-# Initialize session state for goals and points
-if "carbon_footprint_history" not in st.session_state:
+# --- Initialization of session state variables ---
+if 'carbon_footprint_history' not in st.session_state:
     st.session_state.carbon_footprint_history = []
-if "goals" not in st.session_state:
-    st.session_state.goals = []
-if "eco_points" not in st.session_state:
-    st.session_state.eco_points = 0
-if "quiz_completed" not in st.session_state:
-    st.session_state.quiz_completed = False
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "show_signup" not in st.session_state:
-    st.session_state.show_signup = False
 
-# Create users table if it doesn't exist
-create_users_table()
+
 
 # --- Data ---
 # Define emission factors (replace with your actual values)
@@ -178,7 +47,7 @@ emission_factors = {
         "Flat": 2,
     },
     "home_cooling": {  # Separate dictionary for cooling
-        "I don't use a cooler": 0,
+        "I don’t use a cooler": 0,
         "Below 19°C": 3,
         "19°C - 23°C": 2,
         "24°C - 30°C": 1,
@@ -204,9 +73,9 @@ progress_levels = [
     {"title": "Green Enthusiast", "points": [501, 1000], "description": "You're becoming more eco-conscious! Your commitment to reducing your footprint is growing, and you're making significant strides in your sustainability efforts. Start making eco-friendly choices regularly, such as reducing food waste and choosing sustainable farming practices."},
     {"title": "Sustainability Advocate", "points": [1001, 2000], "description": "You're actively promoting sustainable living. Your eco-conscious habits are becoming a regular part of your lifestyle, and you're encouraging others to make a change. Regularly use energy-efficient appliances, reduce processed foods, and make conscious decisions about waste and consumption."},
     {"title": "Planet Saver", "points": [2001, 3500], "description": "You're making a noticeable impact on the planet! Your dedication to sustainability is clear in both your actions and your lifestyle choices. Keep up the great work! Make major changes, such as installing solar panels, reducing air travel, and embracing renewable energy."},
-    {"title": "Eco Warrior", "points": [3501, 5000], "description": "You've become a true warrior for the environment! Your commitment to sustainability is helping to lead the way for others, and your daily choices are making a real difference. Drive an electric vehicle, support sustainable brands, and implement energy-efficient systems in your home."},
-    {"title": "Zero-Carbon Champion", "points": [5001, 7000], "description": "You've achieved a highly sustainable lifestyle! You've reduced your carbon footprint to a remarkable level and continue to advocate for climate action. Your lifestyle is fully aligned with eco-conscious choices, such as living zero waste, eliminating single-use plastics, and significantly reducing your carbon emissions."},
-    {"title": "Planet Protector", "points": [7001, 8690], "description": "You are a true protector of the planet! Your relentless pursuit of sustainability has reduced your environmental impact to its minimum, and you're leading the charge for a greener future. Your efforts to reduce CO2 emissions through sustainable travel, energy, food, and lifestyle choices are exemplary. You've embraced every aspect of eco-friendly living."}
+    {"title": "Eco Warrior", "points": [3501, 5000], "description": "You’ve become a true warrior for the environment! Your commitment to sustainability is helping to lead the way for others, and your daily choices are making a real difference. Drive an electric vehicle, support sustainable brands, and implement energy-efficient systems in your home."},
+    {"title": "Zero-Carbon Champion", "points": [5001, 7000], "description": "You’ve achieved a highly sustainable lifestyle! You've reduced your carbon footprint to a remarkable level and continue to advocate for climate action. Your lifestyle is fully aligned with eco-conscious choices, such as living zero waste, eliminating single-use plastics, and significantly reducing your carbon emissions."},
+    {"title": "Planet Protector", "points": [7001, 8690], "description": "You are a true protector of the planet! Your relentless pursuit of sustainability has reduced your environmental impact to its minimum, and you're leading the charge for a greener future. Your efforts to reduce CO2 emissions through sustainable travel, energy, food, and lifestyle choices are exemplary. You’ve embraced every aspect of eco-friendly living."}
 ]
 
 def get_progress_level(points):
@@ -214,39 +83,41 @@ def get_progress_level(points):
         if level["points"][0] <= points <= level["points"][1]:
             return level
     return None
-
-def update_carbon_footprint_history(new_value):
-    st.session_state.carbon_footprint_history.append(new_value)
-
+    
 # --- Streamlit App ---
 st.title("E-mission")
 
-# Navigation menu
-if not is_user_logged_in():
-    if st.session_state.show_signup:
-        show_users_registration()
-    else:
-        show_users_login()
-else:
-    if st.session_state.quiz_completed:
-        menu = st.sidebar.radio("Navigation", ["Home", "Goals", "Offset", "Levels", "Streaks"])
-    else:
-        menu = "Quiz"
+# Initialize session state for goals and points
+if "goals" not in st.session_state:
+    st.session_state.goals = []
+if "eco_points" not in st.session_state:
+    st.session_state.eco_points = 0
+if "quiz_completed" not in st.session_state:
+    st.session_state.quiz_completed = False
 
+# Navigation menu
+if not user_lib.is_user_logged_in():
+    user_lib.show_users_login()
+    menu = None
+elif st.session_state.quiz_completed:
+    menu = st.sidebar.radio("Navigation", ["Home", "Goals", "Offset", "Levels","Streaks"])
+else:
+    menu = "Quiz"
+    
 # Sidebar for displaying points and level
-if is_user_logged_in() and "eco_points" in st.session_state and st.session_state.quiz_completed:
+if user_lib.is_user_logged_in() and "eco_points" in st.session_state and st.session_state.quiz_completed:
     progress_level = get_progress_level(st.session_state.eco_points)
     if progress_level:
-        st.sidebar.header(get_logged_in_user_name() + ", Your Progress")
+        # st.sidebar.header("Your Progress")
+        st.sidebar.header(user_lib.get_logged_in_user_name() + ", Your Progress")
         st.sidebar.write(f"**{progress_level['title']}**")
         st.sidebar.write(progress_level["description"])
         st.sidebar.write(f"Total Eco Points: {sum(goal['points'] for goal in st.session_state.completed_goals)}")
         st.sidebar.write(f"**Total Carbon Footprint:** {st.session_state.total_emissions:.2f} tons of CO₂e")
-        show_logout_button(sidebar=True)
+        user_lib.show_logout_button(sidebar=True)
 
-        
 # --- Quiz Section ---
-if is_user_logged_in() and not st.session_state.quiz_completed:
+if user_lib.is_user_logged_in() and not st.session_state.quiz_completed:
     st.header("Calculate Your Carbon Footprint")
 
     # --- DIET ---
@@ -428,8 +299,7 @@ if is_user_logged_in() and not st.session_state.quiz_completed:
         st.subheader(f"Daily Goal for {max_category}")
         st.write(daily_goals[max_category])
 
-        # Update quiz completion in database
-        update_quiz_completion(st.session_state.username)
+        # Mark quiz as completed
         st.session_state.quiz_completed = True
 
     # Add "Done" button to go to the home page
@@ -458,7 +328,7 @@ if 'streak_counter' not in st.session_state:
 if 'eco_points' not in st.session_state:
     st.session_state.eco_points = 0
 
-if is_user_logged_in() and menu == "Streaks":
+if user_lib.is_user_logged_in() and menu == "Streaks":
     st.header("Track Your Daily Eco-Friendly Streaks")
 
     # Define streak activities and their descriptions
@@ -514,7 +384,7 @@ def update_carbon_footprint_history(new_value):
 
 
 ######################
-if is_user_logged_in() and menu == "Home":
+if user_lib.is_user_logged_in() and menu == "Home":
     st.header("Welcome to Your Eco-Friendly Journey!")
     st.write("Use the navigation menu to explore suggestions, track your goals, or offset your carbon footprint.")
     if "total_emissions" in st.session_state and "category_emissions" in st.session_state:
@@ -608,7 +478,7 @@ def mark_goal_as_completed(goal):
     if goal in st.session_state.goals:
         st.session_state.goals.remove(goal)
 
-if is_user_logged_in() and menu == "Goals":
+if user_lib.is_user_logged_in() and menu == "Goals":
     st.header("Set and Track Your Goals")
 
     # Flatten goals data into a list of actions with categories, carbon reduction, and points
@@ -669,7 +539,7 @@ if is_user_logged_in() and menu == "Goals":
     st.session_state.eco_points = total_points
 
 # --- Offset Section ---
-if is_user_logged_in() and menu == "Offset":
+if user_lib.is_user_logged_in() and menu == "Offset":
     st.header("Offset Your Carbon Footprint")
     
     offset_links = {
@@ -683,7 +553,7 @@ if is_user_logged_in() and menu == "Offset":
         },
         "Solar Aid": {
             "url": "https://solar-aid.org/",
-            "description": "Igniting kerosene lamps and paraffin candles can emit toxic fumes into people's lungs and into the earth's atmosphere, and in small towns this is the only option when the sun goes down. However, due to the use of solar power light, a real sustainable change can happen."
+            "description": "Igniting kerosene lamps and paraffin candles can emit toxic fumes into people’s lungs and into the earth’s atmosphere, and in small towns this is the only option when the sun goes down. However, due to the use of solar power light, a real sustainable change can happen."
         },
         "TNC India": {
             "url": "https://www.tncindia.in/what-we-do/our-priorities/support-renewable-energy/",
@@ -691,11 +561,11 @@ if is_user_logged_in() and menu == "Offset":
         },
         "WWF India": {
             "url": "https://join.wwfindia.org/?source=WWF-JOIN-WEB&utm_source=main_website&utm_medium=nav_link&utm_campaign=donate",
-            "description": "WWF is an environmental organization whose main aims are to improve environmental literacy, spread awareness on how to lower carbon footprint, preserve India's vast wildlife heritage and to empower vulnerable groups through policy changes and on-ground initiatives."
+            "description": "WWF is an environmental organization whose main aims are to improve environmental literacy, spread awareness on how to lower carbon footprint, preserve India’s vast wildlife heritage and to empower vulnerable groups through policy changes and on-ground initiatives."
         },
         "BJSM": {
             "url": "https://bjsm.org.in/donations/donate-to-protect-the-environment/",
-            "description": "This is one of India's top NGOs dedicated to starting initiatives that combat climate change, focus on sustainable land management, aim to ensure clean and sufficient water resources and promote agroforestry."
+            "description": "This is one of India’s top NGOs dedicated to starting initiatives that combat climate change, focus on sustainable land management, aim to ensure clean and sufficient water resources and promote agroforestry."
         },
         "Gold Standard": {
             "url": "https://www.goldstandard.org/donate-to-gold-standard",
@@ -707,7 +577,7 @@ if is_user_logged_in() and menu == "Offset":
         st.write(f"[{name}]({info['url']})")
         st.write(info['description'])
 
-if is_user_logged_in() and menu == "Levels":
+if user_lib.is_user_logged_in() and menu == "Levels":
     st.header("Available Levels")
 
 
@@ -725,10 +595,3 @@ if is_user_logged_in() and menu == "Levels":
                 st.markdown("<p style='color:green;'>THIS IS YOU</p>", unsafe_allow_html=True)
         if st.button(f"Learn more about {level['title']}", key=level["title"]):
             st.write(level["description"])
-
-# Add function to update quiz completion status
-def update_quiz_completion(username: str):
-    conn = get_db_connection()
-    conn.execute('UPDATE users SET quiz_completed = 1 WHERE username = ?', (username,))
-    conn.commit()
-    conn.close()
