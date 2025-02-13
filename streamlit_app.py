@@ -56,32 +56,59 @@ def show_users_login():
     st.subheader("Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type='password')
-    if st.button("Login"):
-        if authenticate_user(username, password):
-            st.session_state.logged_in = True
-            st.session_state.username = username
-            st.success(f"Logged In as {username}")
-        else:
-            st.warning("Incorrect Username/Password")
-    st.markdown("If you are new, please [Sign Up](#signup) here.", unsafe_allow_html=True)
-    if st.button("Go to Sign Up"):
-        st.session_state.show_signup = True
+    
+    col1, col2 = st.columns([1,1])
+    with col1:
+        if st.button("Login", use_container_width=True):
+            if authenticate_user(username, password):
+                st.session_state.logged_in = True
+                st.session_state.username = username
+                st.success(f"Logged In as {username}")
+                st.rerun()
+            else:
+                st.error("Incorrect Username/Password")
+    
+    st.markdown("---")
+    st.markdown("New to E-mission? [Sign Up](#signup)", unsafe_allow_html=True)
+    with col2:
+        if st.button("Sign Up", use_container_width=True):
+            st.session_state.show_signup = True
+            st.rerun()
 
 # Show registration form
 def show_users_registration():
     st.subheader("Create New Account")
-    new_user = st.text_input("Username")
-    new_email = st.text_input("Email")
-    new_password = st.text_input("Password", type='password')
-    if st.button("Sign Up"):
-        try:
-            register_user(new_user, new_email, new_password)
-            st.success("You have successfully created an account")
-            st.info("Go to the Login Menu to login")
-        except sqlite3.IntegrityError:
-            st.warning("Username or Email already exists")
-    if st.button("Back to Login"):
+    with st.form("signup_form"):
+        new_user = st.text_input("Username")
+        new_email = st.text_input("Email")
+        new_password = st.text_input("Password", type='password')
+        confirm_password = st.text_input("Confirm Password", type='password')
+        
+        submitted = st.form_submit_button("Sign Up")
+        
+        if submitted:
+            if not new_user or not new_email or not new_password:
+                st.error("Please fill in all fields")
+                return
+            
+            if new_password != confirm_password:
+                st.error("Passwords do not match")
+                return
+            
+            try:
+                register_user(new_user, new_email, new_password)
+                st.success("Account created successfully!")
+                st.info("Please login with your credentials")
+                st.session_state.show_signup = False
+                st.rerun()
+            except sqlite3.IntegrityError:
+                st.error("Username or Email already exists")
+    
+    st.markdown("---")
+    st.markdown("Already have an account?")
+    if st.button("Back to Login", use_container_width=True):
         st.session_state.show_signup = False
+        st.rerun()
 
 # Show logout button
 def show_logout_button(sidebar=False):
@@ -148,7 +175,7 @@ emission_factors = {
         "Flat": 2,
     },
     "home_cooling": {  # Separate dictionary for cooling
-        "I don’t use a cooler": 0,
+        "I don't use a cooler": 0,
         "Below 19°C": 3,
         "19°C - 23°C": 2,
         "24°C - 30°C": 1,
@@ -174,9 +201,9 @@ progress_levels = [
     {"title": "Green Enthusiast", "points": [501, 1000], "description": "You're becoming more eco-conscious! Your commitment to reducing your footprint is growing, and you're making significant strides in your sustainability efforts. Start making eco-friendly choices regularly, such as reducing food waste and choosing sustainable farming practices."},
     {"title": "Sustainability Advocate", "points": [1001, 2000], "description": "You're actively promoting sustainable living. Your eco-conscious habits are becoming a regular part of your lifestyle, and you're encouraging others to make a change. Regularly use energy-efficient appliances, reduce processed foods, and make conscious decisions about waste and consumption."},
     {"title": "Planet Saver", "points": [2001, 3500], "description": "You're making a noticeable impact on the planet! Your dedication to sustainability is clear in both your actions and your lifestyle choices. Keep up the great work! Make major changes, such as installing solar panels, reducing air travel, and embracing renewable energy."},
-    {"title": "Eco Warrior", "points": [3501, 5000], "description": "You’ve become a true warrior for the environment! Your commitment to sustainability is helping to lead the way for others, and your daily choices are making a real difference. Drive an electric vehicle, support sustainable brands, and implement energy-efficient systems in your home."},
-    {"title": "Zero-Carbon Champion", "points": [5001, 7000], "description": "You’ve achieved a highly sustainable lifestyle! You've reduced your carbon footprint to a remarkable level and continue to advocate for climate action. Your lifestyle is fully aligned with eco-conscious choices, such as living zero waste, eliminating single-use plastics, and significantly reducing your carbon emissions."},
-    {"title": "Planet Protector", "points": [7001, 8690], "description": "You are a true protector of the planet! Your relentless pursuit of sustainability has reduced your environmental impact to its minimum, and you're leading the charge for a greener future. Your efforts to reduce CO2 emissions through sustainable travel, energy, food, and lifestyle choices are exemplary. You’ve embraced every aspect of eco-friendly living."}
+    {"title": "Eco Warrior", "points": [3501, 5000], "description": "You've become a true warrior for the environment! Your commitment to sustainability is helping to lead the way for others, and your daily choices are making a real difference. Drive an electric vehicle, support sustainable brands, and implement energy-efficient systems in your home."},
+    {"title": "Zero-Carbon Champion", "points": [5001, 7000], "description": "You've achieved a highly sustainable lifestyle! You've reduced your carbon footprint to a remarkable level and continue to advocate for climate action. Your lifestyle is fully aligned with eco-conscious choices, such as living zero waste, eliminating single-use plastics, and significantly reducing your carbon emissions."},
+    {"title": "Planet Protector", "points": [7001, 8690], "description": "You are a true protector of the planet! Your relentless pursuit of sustainability has reduced your environmental impact to its minimum, and you're leading the charge for a greener future. Your efforts to reduce CO2 emissions through sustainable travel, energy, food, and lifestyle choices are exemplary. You've embraced every aspect of eco-friendly living."}
 ]
 
 def get_progress_level(points):
@@ -652,7 +679,7 @@ if is_user_logged_in() and menu == "Offset":
         },
         "Solar Aid": {
             "url": "https://solar-aid.org/",
-            "description": "Igniting kerosene lamps and paraffin candles can emit toxic fumes into people’s lungs and into the earth’s atmosphere, and in small towns this is the only option when the sun goes down. However, due to the use of solar power light, a real sustainable change can happen."
+            "description": "Igniting kerosene lamps and paraffin candles can emit toxic fumes into people's lungs and into the earth's atmosphere, and in small towns this is the only option when the sun goes down. However, due to the use of solar power light, a real sustainable change can happen."
         },
         "TNC India": {
             "url": "https://www.tncindia.in/what-we-do/our-priorities/support-renewable-energy/",
@@ -660,11 +687,11 @@ if is_user_logged_in() and menu == "Offset":
         },
         "WWF India": {
             "url": "https://join.wwfindia.org/?source=WWF-JOIN-WEB&utm_source=main_website&utm_medium=nav_link&utm_campaign=donate",
-            "description": "WWF is an environmental organization whose main aims are to improve environmental literacy, spread awareness on how to lower carbon footprint, preserve India’s vast wildlife heritage and to empower vulnerable groups through policy changes and on-ground initiatives."
+            "description": "WWF is an environmental organization whose main aims are to improve environmental literacy, spread awareness on how to lower carbon footprint, preserve India's vast wildlife heritage and to empower vulnerable groups through policy changes and on-ground initiatives."
         },
         "BJSM": {
             "url": "https://bjsm.org.in/donations/donate-to-protect-the-environment/",
-            "description": "This is one of India’s top NGOs dedicated to starting initiatives that combat climate change, focus on sustainable land management, aim to ensure clean and sufficient water resources and promote agroforestry."
+            "description": "This is one of India's top NGOs dedicated to starting initiatives that combat climate change, focus on sustainable land management, aim to ensure clean and sufficient water resources and promote agroforestry."
         },
         "Gold Standard": {
             "url": "https://www.goldstandard.org/donate-to-gold-standard",
