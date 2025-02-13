@@ -68,7 +68,6 @@ def show_users_login():
             else:
                 st.error("Incorrect Username/Password")
     
-    st.markdown("---")
     with col2:
         if st.button("Sign Up", use_container_width=True):
             st.session_state.show_signup = True
